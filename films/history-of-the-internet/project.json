@@ -1,0 +1,41 @@
+{
+  "title": "History of the Internet",
+  "slug": "history-of-the-internet",
+  "style": "swiss-motion-graphics",
+  "width": 1920,
+  "height": 1080,
+  "fps": 24,
+  "voice": "en-US-ChristopherNeural",
+  "music_style": "swiss_minimal",
+  "music_volume": 0.20,
+  "scenes": [
+    {
+      "id": "scene_01",
+      "html": "scenes/scene_01.html",
+      "narration": "October nineteen sixty-nine. Four nodes create ARPANET, transmitting the world's first packet.",
+      "min_duration": 7.0,
+      "tail_padding": 0.5
+    },
+    {
+      "id": "scene_02",
+      "html": "scenes/scene_02.html",
+      "narration": "January nineteen eighty-three. ARPANET adopts TCP/IP, creating the modern Internet.",
+      "min_duration": 7.2,
+      "tail_padding": 0.5
+    },
+    {
+      "id": "scene_03",
+      "html": "scenes/scene_03.html",
+      "narration": "Nineteen ninety-one. Tim Berners-Lee creates the World Wide Web, linking humanity through hyperlinks.",
+      "min_duration": 7.2,
+      "tail_padding": 0.5
+    },
+    {
+      "id": "scene_04",
+      "html": "scenes/scene_04.html",
+      "narration": "Today, five billion minds connect across the globe. The planetary network is alive.",
+      "min_duration": 7.0,
+      "tail_padding": 0.6
+    }
+  ]
+}

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #141413; overflow: hidden; font-family: 'Courier New', monospace; }
+  canvas { display: block; width: 1920px; height: 1080px; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1920" height="1080"></canvas>
+<script>
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+const clamp = (v, min = 0, max = 1) => Math.min(max, Math.max(min, v));
+const remap = (t, t0, t1) => clamp((t - t0) / (t1 - t0), 0, 1);
+const outCubic = (x) => 1 - Math.pow(1 - clamp(x), 3);
+
+window.renderFrame = function(t, duration = 6.0) {
+  ctx.fillStyle = '#141413';
+  ctx.fillRect(0, 0, 1920, 1080);
+
+  // Subtle Ken Burns zoom on document card
+  const zoom = 1.0 + 0.04 * (t / duration);
+  ctx.save();
+  ctx.translate(960, 540);
+  ctx.scale(zoom, zoom);
+  ctx.translate(-960, -540);
+
+  // Archival Document Sheet
+  ctx.fillStyle = '#EAE6DF';
+  ctx.fillRect(320, 160, 1280, 760);
+
+  ctx.fillStyle = '#222';
+  ctx.font = 'bold 30px Courier New';
+  ctx.fillText('EXHIBIT A // TECHNICAL AUDIT REPORT #409', 400, 250);
+
+  // Highlighter Sweep behind key finding
+  const hlP = outCubic(remap(t, 0.8, 2.2));
+  ctx.fillStyle = 'rgba(250, 204, 21, 0.72)';
+  ctx.fillRect(395, 395, 980 * hlP, 68);
+
+  ctx.fillStyle = '#111';
+  ctx.font = 'bold 46px Georgia, serif';
+  ctx.fillText('“99.98% of packet loss occurred at Gateway Node 04.”', 400, 445);
+
+  ctx.font = '28px Courier New';
+  ctx.fillStyle = '#444';
+  ctx.fillText('SOURCE: RFC TELEMETRY LOGS (VERIFIED TIMESTAMP 14:22:09 UTC)', 400, 560);
+  ctx.restore();
+};
+
+if (!navigator.webdriver && !window.__OPUSCAR_HEADLESS__) {
+  const start = performance.now();
+  function loop(now) {
+    window.renderFrame(((now - start) / 1000) % 6.0, 6.0);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

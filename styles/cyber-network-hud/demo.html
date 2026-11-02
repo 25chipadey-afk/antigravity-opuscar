@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #070B14; overflow: hidden; font-family: 'Courier New', monospace; }
+  canvas { display: block; width: 1920px; height: 1080px; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1920" height="1080"></canvas>
+<script>
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+
+const clamp = (v, min = 0, max = 1) => Math.min(max, Math.max(min, v));
+const remap = (t, t0, t1) => clamp((t - t0) / (t1 - t0), 0, 1);
+const outCubic = (x) => 1 - Math.pow(1 - clamp(x), 3);
+const inOutCubic = (x) => {
+  x = clamp(x);
+  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+};
+
+window.renderFrame = function(t, duration = 6.0) {
+  ctx.fillStyle = '#070B14';
+  ctx.fillRect(0, 0, 1920, 1080);
+
+  // Coordinate Grid
+  ctx.strokeStyle = 'rgba(0, 240, 255, 0.07)';
+  ctx.lineWidth = 1;
+  const drift = (t * 18) % 60;
+  for (let x = drift; x < 1920; x += 60) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 1080); ctx.stroke();
+  }
+  for (let y = 0; y < 1080; y += 60) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1920, y); ctx.stroke();
+  }
+
+  // HUD Header
+  const headP = outCubic(remap(t, 0, 0.8));
+  ctx.fillStyle = `rgba(0, 240, 255, ${headP})`;
+  ctx.font = 'bold 28px monospace';
+  ctx.fillText('SYS.TELEMETRY // RFC-9293 // TCP 3-WAY HANDSHAKE', 140, 110);
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 64px monospace';
+  ctx.fillText('STEP 01: SYNCHRONIZE (SYN)', 140, 190);
+
+  // Client & Server Nodes
+  const clientX = 460, serverX = 1460, nodeY = 560;
+  const nodeScale = outCubic(remap(t, 0.2, 1.0));
+
+  function drawNode(x, y, label, ip, color) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(nodeScale, nodeScale);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4;
+    ctx.fillStyle = '#0D1726';
+    ctx.beginPath();
+    ctx.arc(0, 0, 110, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 34px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, 0, -10);
+    ctx.fillStyle = color;
+    ctx.font = '24px monospace';
+    ctx.fillText(ip, 0, 32);
+    ctx.restore();
+  }
+
+  drawNode(clientX, nodeY, 'CLIENT', '10.0.4.12:54321', '#00F0FF');
+  drawNode(serverX, nodeY, 'SERVER', '172.16.0.1:443', '#10B981');
+
+  // Channel Guide Line
+  ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+  ctx.setLineDash([12, 12]);
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(clientX + 120, nodeY);
+  ctx.lineTo(serverX - 120, nodeY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Animated SYN Packet flying Client -> Server
+  const pktP = inOutCubic(remap(t, 1.0, duration * 0.78));
+  if (pktP > 0) {
+    const px = (clientX + 120) + (serverX - clientX - 240) * pktP;
+    ctx.fillStyle = '#F59E0B';
+    ctx.beginPath();
+    ctx.arc(px, nodeY, 22, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#F59E0B';
+    ctx.font = 'bold 28px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('SYN [SEQ = 100, CTL = SYN]', px, nodeY - 45);
+    ctx.textAlign = 'left';
+  }
+
+  // Bottom Status Bar
+  ctx.fillStyle = 'rgba(0, 240, 255, 0.85)';
+  ctx.font = '26px monospace';
+  ctx.fillText(`TIME: ${t.toFixed(2)}s / ${duration.toFixed(2)}s   STATE: SYN_SENT`, 140, 960);
+};
+
+if (!navigator.webdriver && !window.__OPUSCAR_HEADLESS__) {
+  const start = performance.now();
+  function loop(now) {
+    window.renderFrame(((now - start) / 1000) % 6.0, 6.0);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

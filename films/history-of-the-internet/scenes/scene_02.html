@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #F4F1EA; overflow: hidden; font-family: 'Helvetica Neue', 'Arial Black', Arial, sans-serif; }
+  canvas { display: block; width: 1920px; height: 1080px; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1920" height="1080"></canvas>
+<script>
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+
+const clamp = (v, min = 0, max = 1) => Math.min(max, Math.max(min, v));
+const remap = (t, t0, t1) => clamp((t - t0) / (t1 - t0), 0, 1);
+const lerp = (a, b, p) => a + (b - a) * clamp(p);
+
+const Easing = {
+  outQuint: (x) => 1 - Math.pow(1 - clamp(x), 5),
+  outCubic: (x) => 1 - Math.pow(1 - clamp(x), 3),
+  inOutCubic: (x) => {
+    x = clamp(x);
+    return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  },
+  outBack: (x) => {
+    x = clamp(x);
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+  }
+};
+
+function seededRandom(seed) {
+  const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function drawSwissGrid(ctx, width, height) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(17, 17, 17, 0.08)';
+  ctx.lineWidth = 1;
+
+  const colW = (width - 240) / 12;
+  for (let i = 0; i <= 12; i++) {
+    const x = 120 + i * colW;
+    ctx.beginPath();
+    ctx.moveTo(x, 60);
+    ctx.lineTo(x, height - 60);
+    ctx.stroke();
+  }
+
+  const rowH = (height - 160) / 8;
+  for (let j = 0; j <= 8; j++) {
+    const y = 80 + j * rowH;
+    ctx.beginPath();
+    ctx.moveTo(120, y);
+    ctx.lineTo(width - 120, y);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = 'rgba(17, 17, 17, 0.25)';
+  ctx.font = '12px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  [0, 3, 6, 9, 12].forEach(col => {
+    [0, 2, 4, 6, 8].forEach(row => {
+      ctx.fillText('+', 120 + col * colW, 80 + row * rowH);
+    });
+  });
+  ctx.restore();
+}
+
+window.renderFrame = function(t, duration = 8.0) {
+  ctx.fillStyle = '#F4F1EA';
+  ctx.fillRect(0, 0, 1920, 1080);
+
+  drawSwissGrid(ctx, 1920, 1080);
+
+  // ----------------------------------------------------
+  // 1. FOLIO HEADERS
+  // ----------------------------------------------------
+  const folioProg = Easing.outCubic(remap(t, 0.1, 0.7));
+  ctx.save();
+  ctx.globalAlpha = folioProg;
+  ctx.fillStyle = '#111111';
+  ctx.font = 'bold 15px "Helvetica Neue", Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('CHRONOLOGY OF THE INTERNET // VOL. 02', 120, 50);
+
+  ctx.textAlign = 'center';
+  ctx.fillText('JANUARY 1, 1983 • "FLAG DAY" CUTOVER', 960, 50);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#FF2A00';
+  ctx.fillText('RFC 801 // NCP -> TCP/IP CONVERSION', 1800, 50);
+  ctx.restore();
+
+  // ----------------------------------------------------
+  // 2. HERO TYPOGRAPHY: 1983 // TCP/IP
+  // ----------------------------------------------------
+  const yearP = Easing.outQuint(remap(t, 0.2, 1.2));
+  const textP = Easing.outQuint(remap(t, 0.4, 1.3));
+
+  ctx.save();
+  ctx.fillStyle = '#111111';
+  ctx.font = '900 130px "Helvetica Neue", Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText('1983', 120, 120 + (1 - yearP) * 50);
+
+  if (yearP > 0.3) {
+    const badgeW = 460;
+    const badgeH = 54;
+    ctx.fillStyle = '#FF2A00';
+    ctx.fillRect(120, 275, badgeW * yearP, badgeH);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 28px "Helvetica Neue", Arial, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('STANDARDIZED: TCP / IP', 140, 275 + badgeH / 2);
+  }
+
+  ctx.globalAlpha = textP;
+  ctx.fillStyle = '#111111';
+  ctx.font = 'bold 36px "Helvetica Neue", Arial, sans-serif';
+  ctx.fillText('THE NETWORK OF NETWORKS.', 120, 360 + (1 - textP) * 30);
+
+  ctx.font = 'normal 22px "Helvetica Neue", Arial, sans-serif';
+  ctx.fillStyle = '#444444';
+  ctx.fillText('Vint Cerf and Bob Kahn unify incompatible hardware protocols.', 120, 415);
+  ctx.fillText('Any network on Earth can now communicate via open standard IP addressing.', 120, 445);
+  ctx.restore();
+
+  // ----------------------------------------------------
+  // 3. ARCHITECTURAL INTER-NETWORKING (Right Stage)
+  // ----------------------------------------------------
+  const stageCenterX = 1380;
+  const stageCenterY = 490;
+
+  // The 3 Separate Subnetworks (PRNET, SATNET, ARPANET)
+  const subnets = [
+    { name: 'ARPANET', tech: 'Terrestrial Cable', angle: -Math.PI / 2, dist: 220, tIn: 0.5 },
+    { name: 'PRNET', tech: 'Packet Radio', angle: Math.PI / 6, dist: 220, tIn: 1.0 },
+    { name: 'SATNET', tech: 'Atlantic Satellite', angle: 5 * Math.PI / 6, dist: 220, tIn: 1.5 }
+  ];
+
+  // Draw Connecting Rays to Center Gateway
+  ctx.save();
+  subnets.forEach((s, idx) => {
+    if (t < s.tIn) return;
+    const sProg = Easing.outQuint(remap(t, s.tIn, s.tIn + 0.6));
+    const targetX = stageCenterX + Math.cos(s.angle) * s.dist;
+    const targetY = stageCenterY + Math.sin(s.angle) * s.dist;
+
+    // Connector Line
+    ctx.strokeStyle = '#111111';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(stageCenterX, stageCenterY);
+    ctx.lineTo(lerp(stageCenterX, targetX, sProg), lerp(stageCenterY, targetY, sProg));
+    ctx.stroke();
+
+    // Dotted Subnet Boundary Circles
+    ctx.strokeStyle = 'rgba(17, 17, 17, 0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([6, 6]);
+    ctx.beginPath();
+    ctx.arc(targetX, targetY, 80 * sProg, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Subnet Hub Box
+    if (sProg > 0.4) {
+      ctx.fillStyle = '#111111';
+      ctx.fillRect(targetX - 70, targetY - 30, 140, 60);
+
+      ctx.fillStyle = '#F4F1EA';
+      ctx.font = 'bold 18px "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(s.name, targetX, targetY - 8);
+
+      ctx.fillStyle = '#FF2A00';
+      ctx.font = '11px monospace';
+      ctx.fillText(s.tech, targetX, targetY + 14);
+    }
+  });
+  ctx.restore();
+
+  // Central Inter-Net Gateway (The Heart of TCP/IP)
+  const gateProg = Easing.outBack(remap(t, 2.0, 3.0));
+  if (gateProg > 0) {
+    ctx.save();
+    ctx.translate(stageCenterX, stageCenterY);
+    ctx.scale(gateProg, gateProg);
+
+    // Outer rotating Swiss tick dial
+    ctx.save();
+    ctx.rotate(t * 0.4);
+    ctx.strokeStyle = '#FF2A00';
+    ctx.lineWidth = 2;
+    for (let d = 0; d < 12; d++) {
+      const a = (d / 12) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * 95, Math.sin(a) * 95);
+      ctx.lineTo(Math.cos(a) * 115, Math.sin(a) * 115);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // Solid Vermilion Circle
+    ctx.fillStyle = '#FF2A00';
+    ctx.beginPath();
+    ctx.arc(0, 0, 80, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Inner Black Core
+    ctx.fillStyle = '#111111';
+    ctx.beginPath();
+    ctx.arc(0, 0, 52, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Central Swiss Cross in White
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(-8, -26, 16, 52);
+    ctx.fillRect(-26, -8, 52, 16);
+
+    ctx.restore();
+
+    // Gateway Label
+    ctx.save();
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 22px "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('IP ROUTING GATEWAY', stageCenterX, stageCenterY + 140);
+
+    ctx.fillStyle = '#666666';
+    ctx.font = 'normal 15px "Helvetica Neue", Arial, sans-serif';
+    ctx.fillText('Packet Translation • RFC 791 (IP) / RFC 793 (TCP)', stageCenterX, stageCenterY + 166);
+    ctx.restore();
+  }
+
+  // ----------------------------------------------------
+  // 4. ANIMATED TCP/IP PACKETS ROUTING BETWEEN SUBNETS
+  // ----------------------------------------------------
+  if (t > 3.2) {
+    const pTimes = [
+      { tStart: 3.2, from: 0, to: 1 },
+      { tStart: 4.4, from: 1, to: 2 },
+      { tStart: 5.6, from: 2, to: 0 }
+    ];
+
+    pTimes.forEach(pt => {
+      if (t < pt.tStart) return;
+      const progress = clamp((t - pt.tStart) / 1.2);
+      if (progress >= 1) return;
+
+      const sFrom = subnets[pt.from];
+      const sTo = subnets[pt.to];
+      const fromX = stageCenterX + Math.cos(sFrom.angle) * sFrom.dist;
+      const fromY = stageCenterY + Math.sin(sFrom.angle) * sFrom.dist;
+      const toX = stageCenterX + Math.cos(sTo.angle) * sTo.dist;
+      const toY = stageCenterY + Math.sin(sTo.angle) * sTo.dist;
+
+      let curX, curY;
+      if (progress < 0.5) {
+        const subP = progress * 2;
+        curX = lerp(fromX, stageCenterX, subP);
+        curY = lerp(fromY, stageCenterY, subP);
+      } else {
+        const subP = (progress - 0.5) * 2;
+        curX = lerp(stageCenterX, toX, subP);
+        curY = lerp(stageCenterY, toY, subP);
+      }
+
+      ctx.save();
+      ctx.fillStyle = '#FF2A00';
+      ctx.fillRect(curX - 12, curY - 12, 24, 24);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 10px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('IP', curX, curY);
+      ctx.restore();
+    });
+  }
+
+  // ----------------------------------------------------
+  // 5. TECHNICAL METRIC CARDS (Bottom Left)
+  // ----------------------------------------------------
+  if (t > 4.0) {
+    const cardProg = Easing.outQuint(remap(t, 4.0, 5.0));
+    ctx.save();
+    ctx.globalAlpha = cardProg;
+
+    const cX = 120;
+    const cY = 560;
+    const cW = 360;
+    const cH = 180;
+
+    // Card 1: NCP Retired
+    ctx.strokeStyle = '#111111';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(cX, cY, cW, cH);
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 16px "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('PREVIOUS STANDARD // NCP', cX + 24, cY + 38);
+
+    ctx.fillStyle = '#888888';
+    ctx.font = 'normal 15px "Helvetica Neue", Arial, sans-serif';
+    ctx.fillText('Limited to homogeneous ARPANET hardware.', cX + 24, cY + 70);
+    ctx.fillText('Lacked sub-network routing capabilities.', cX + 24, cY + 95);
+
+    ctx.fillStyle = '#FF2A00';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText('STATUS: DEPRECATED JAN 1 1983', cX + 24, cY + 140);
+
+    // Card 2: TCP/IP Activated
+    const c2X = cX + cW + 40;
+    ctx.strokeRect(c2X, cY, cW, cH);
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 16px "Helvetica Neue", Arial, sans-serif';
+    ctx.fillText('NEW STANDARD // TCP / IP', c2X + 24, cY + 38);
+
+    ctx.fillStyle = '#444444';
+    ctx.font = 'normal 15px "Helvetica Neue", Arial, sans-serif';
+    ctx.fillText('Standardized 32-bit IPv4 Addressing.', c2X + 24, cY + 70);
+    ctx.fillText('Stateless packet routing & guaranteed delivery.', c2X + 24, cY + 95);
+
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText('STATUS: UNIVERSAL ADOPTION', c2X + 24, cY + 140);
+
+    ctx.restore();
+  }
+
+  // ----------------------------------------------------
+  // 6. BOTTOM FULL-WIDTH STRIP
+  // ----------------------------------------------------
+  if (t > 5.5) {
+    const footP = Easing.outCubic(remap(t, 5.5, 6.5));
+    ctx.save();
+    ctx.globalAlpha = footP;
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(120, 870, 1680 * footP, 80);
+
+    if (footP > 0.5) {
+      ctx.fillStyle = '#F4F1EA';
+      ctx.font = '900 28px "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('JANUARY 1, 1983: THE OFFICIAL BIRTH OF THE INTERNET', 160, 910);
+
+      ctx.fillStyle = '#FF2A00';
+      ctx.font = 'bold 22px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText('RFC 801 // 1983', 1760, 910);
+    }
+    ctx.restore();
+  }
+};
+
+if (!navigator.webdriver && !window.__OPUSCAR_HEADLESS__) {
+  const defaultDuration = 8.0;
+  const start = performance.now();
+  function loop(now) {
+    const t = ((now - start) / 1000) % defaultDuration;
+    window.renderFrame(t, defaultDuration);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

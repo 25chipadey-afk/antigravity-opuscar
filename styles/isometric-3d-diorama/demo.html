@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #181C24; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
+  canvas { display: block; width: 1920px; height: 1080px; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1920" height="1080"></canvas>
+<script>
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+
+function drawIsoBlock(cx, cy, gx, gy, gz, w, d, h, colors) {
+  const tileW = 64, tileH = 32;
+  const isoX = (x, y) => cx + (x - y) * tileW;
+  const isoY = (x, y, z) => cy + (x + y) * tileH - z * 42;
+
+  const p00 = [isoX(gx, gy), isoY(gx, gy, gz + h)];
+  const p10 = [isoX(gx + w, gy), isoY(gx + w, gy, gz + h)];
+  const p11 = [isoX(gx + w, gy + d), isoY(gx + w, gy + d, gz + h)];
+  const p01 = [isoX(gx, gy + d), isoY(gx, gy + d, gz + h)];
+
+  const b10 = [isoX(gx + w, gy), isoY(gx + w, gy, gz)];
+  const b11 = [isoX(gx + w, gy + d), isoY(gx + w, gy + d, gz)];
+  const b01 = [isoX(gx, gy + d), isoY(gx, gy + d, gz)];
+
+  // Top Face
+  ctx.fillStyle = colors[0];
+  ctx.beginPath();
+  ctx.moveTo(...p00); ctx.lineTo(...p10); ctx.lineTo(...p11); ctx.lineTo(...p01);
+  ctx.closePath(); ctx.fill();
+
+  // Left Face
+  ctx.fillStyle = colors[1];
+  ctx.beginPath();
+  ctx.moveTo(...p01); ctx.lineTo(...p11); ctx.lineTo(...b11); ctx.lineTo(...b01);
+  ctx.closePath(); ctx.fill();
+
+  // Right Face
+  ctx.fillStyle = colors[2];
+  ctx.beginPath();
+  ctx.moveTo(...p10); ctx.lineTo(...p11); ctx.lineTo(...b11); ctx.lineTo(...b10);
+  ctx.closePath(); ctx.fill();
+}
+
+window.renderFrame = function(t, duration = 6.0) {
+  ctx.fillStyle = '#181C24';
+  ctx.fillRect(0, 0, 1920, 1080);
+
+  const paletteCyan = ['#67E8F9', '#06B6D4', '#0E7490'];
+  const paletteAmber = ['#FDE68A', '#F59E0B', '#B45309'];
+
+  for (let x = -2; x <= 2; x++) {
+    for (let y = -2; y <= 2; y++) {
+      const wave = Math.sin(t * 2.4 + (x + y) * 0.7) * 0.8 + 1.2;
+      const isCenter = (x === 0 && y === 0);
+      drawIsoBlock(960, 560, x * 1.2, y * 1.2, 0, 1, 1, isCenter ? wave + 1.2 : wave, isCenter ? paletteAmber : paletteCyan);
+    }
+  }
+
+  ctx.fillStyle = '#FFFFFF';
+  ctx.font = 'bold 58px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('ISOMETRIC 3D DIORAMA ARCHITECTURE', 960, 160);
+};
+
+if (!navigator.webdriver && !window.__OPUSCAR_HEADLESS__) {
+  const start = performance.now();
+  function loop(now) {
+    window.renderFrame(((now - start) / 1000) % 6.0, 6.0);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

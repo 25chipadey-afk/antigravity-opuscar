@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #F4F1EA; overflow: hidden; font-family: 'Helvetica Neue', 'Arial Black', Arial, sans-serif; }
+  canvas { display: block; width: 1920px; height: 1080px; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1920" height="1080"></canvas>
+<script>
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+
+const clamp = (v, min = 0, max = 1) => Math.min(max, Math.max(min, v));
+const remap = (t, t0, t1) => clamp((t - t0) / (t1 - t0), 0, 1);
+const lerp = (a, b, p) => a + (b - a) * clamp(p);
+
+const Easing = {
+  outQuint: (x) => 1 - Math.pow(1 - clamp(x), 5),
+  outCubic: (x) => 1 - Math.pow(1 - clamp(x), 3),
+  inOutCubic: (x) => {
+    x = clamp(x);
+    return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+  },
+  outBack: (x) => {
+    x = clamp(x);
+    const c1 = 1.70158, c3 = c1 + 1;
+    return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2);
+  }
+};
+
+function seededRandom(seed) {
+  const x = Math.sin(seed * 12.9898 + 78.233) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function drawSwissGrid(ctx, width, height) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(17, 17, 17, 0.08)';
+  ctx.lineWidth = 1;
+
+  const colW = (width - 240) / 12;
+  for (let i = 0; i <= 12; i++) {
+    const x = 120 + i * colW;
+    ctx.beginPath();
+    ctx.moveTo(x, 60);
+    ctx.lineTo(x, height - 60);
+    ctx.stroke();
+  }
+
+  const rowH = (height - 160) / 8;
+  for (let j = 0; j <= 8; j++) {
+    const y = 80 + j * rowH;
+    ctx.beginPath();
+    ctx.moveTo(120, y);
+    ctx.lineTo(width - 120, y);
+    ctx.stroke();
+  }
+
+  ctx.fillStyle = 'rgba(17, 17, 17, 0.25)';
+  ctx.font = '12px monospace';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  [0, 3, 6, 9, 12].forEach(col => {
+    [0, 2, 4, 6, 8].forEach(row => {
+      ctx.fillText('+', 120 + col * colW, 80 + row * rowH);
+    });
+  });
+  ctx.restore();
+}
+
+window.renderFrame = function(t, duration = 7.6) {
+  ctx.fillStyle = '#F4F1EA';
+  ctx.fillRect(0, 0, 1920, 1080);
+
+  drawSwissGrid(ctx, 1920, 1080);
+
+  // ----------------------------------------------------
+  // 1. FOLIO HEADERS
+  // ----------------------------------------------------
+  const folioProg = Easing.outCubic(remap(t, 0.1, 0.7));
+  ctx.save();
+  ctx.globalAlpha = folioProg;
+  ctx.fillStyle = '#111111';
+  ctx.font = 'bold 15px "Helvetica Neue", Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('CHRONOLOGY OF THE INTERNET // VOL. 04', 120, 50);
+
+  ctx.textAlign = 'center';
+  ctx.fillText('PRESENT DAY • GLOBAL TELECOMMUNICATIONS GRID', 960, 50);
+
+  ctx.textAlign = 'right';
+  ctx.fillStyle = '#FF2A00';
+  ctx.fillText('5.5 BILLION HUMANS ONLINE // PLANETARY NERVOUS SYSTEM', 1800, 50);
+  ctx.restore();
+
+  // ----------------------------------------------------
+  // 2. HERO TYPOGRAPHY: TODAY // GLOBAL
+  // ----------------------------------------------------
+  const yearP = Easing.outQuint(remap(t, 0.2, 1.2));
+  const textP = Easing.outQuint(remap(t, 0.4, 1.3));
+
+  ctx.save();
+  ctx.fillStyle = '#111111';
+  ctx.font = '900 130px "Helvetica Neue", Arial, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText('TODAY', 120, 120 + (1 - yearP) * 50);
+
+  if (yearP > 0.3) {
+    const badgeW = 460;
+    const badgeH = 54;
+    ctx.fillStyle = '#FF2A00';
+    ctx.fillRect(120, 275, badgeW * yearP, badgeH);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 28px "Helvetica Neue", Arial, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('GLOBAL HYPER-STRUCTURE', 140, 275 + badgeH / 2);
+  }
+
+  ctx.globalAlpha = textP;
+  ctx.fillStyle = '#111111';
+  ctx.font = 'bold 36px "Helvetica Neue", Arial, sans-serif';
+  ctx.fillText('FIVE BILLION MINDS CONNECTED.', 120, 360 + (1 - textP) * 30);
+
+  ctx.font = 'normal 22px "Helvetica Neue", Arial, sans-serif';
+  ctx.fillStyle = '#444444';
+  ctx.fillText('A four-node research network became humanity\'s shared collective memory.', 120, 415);
+  ctx.fillText('Exabytes of data travel through seabed glass fibers at the speed of light.', 120, 445);
+  ctx.restore();
+
+  // ----------------------------------------------------
+  // 3. THREE MONUMENTAL SWISS METRICS
+  // ----------------------------------------------------
+  const metricProg = Easing.outQuint(remap(t, 1.2, 2.2));
+  if (metricProg > 0) {
+    ctx.save();
+    ctx.globalAlpha = metricProg;
+
+    const metrics = [
+      { num: '5.5B', label: 'CONNECTED HUMANS', sub: '68% of planetary population' },
+      { num: '1.4M', label: 'KM SUBSEA FIBER', sub: '500+ undersea optical cables' },
+      { num: '150K+', label: 'AUTONOMOUS NETWORKS', sub: 'BGP global routing mesh' }
+    ];
+
+    const mW = 240;
+    const mH = 150;
+    const mGap = 24;
+    const startX = 120;
+    const startY = 510;
+
+    metrics.forEach((m, idx) => {
+      const bx = startX + idx * (mW + mGap);
+      ctx.strokeStyle = '#111111';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(bx, startY, mW, mH);
+
+      ctx.fillStyle = '#FF2A00';
+      ctx.font = '900 52px "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(m.num, bx + 20, startY + 62);
+
+      ctx.fillStyle = '#111111';
+      ctx.font = 'bold 15px "Helvetica Neue", Arial, sans-serif';
+      ctx.fillText(m.label, bx + 20, startY + 100);
+
+      ctx.fillStyle = '#666666';
+      ctx.font = 'normal 13px "Helvetica Neue", Arial, sans-serif';
+      ctx.fillText(m.sub, bx + 20, startY + 126);
+    });
+    ctx.restore();
+  }
+
+  // ----------------------------------------------------
+  // 4. PLANETARY DISK GRAPHIC (Right Stage)
+  // ----------------------------------------------------
+  const globeX = 1380;
+  const globeY = 490;
+  const globeProg = Easing.outBack(remap(t, 0.5, 1.8));
+
+  if (globeProg > 0) {
+    ctx.save();
+    ctx.translate(globeX, globeY);
+    ctx.scale(globeProg, globeProg);
+
+    // Giant Vermilion Red Globe Core
+    ctx.fillStyle = '#FF2A00';
+    ctx.beginPath();
+    ctx.arc(0, 0, 230, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Secondary rotation angle for continuous motion
+    const rot = t * 0.25;
+
+    // Stark Black Latitude / Longitude Ellipses
+    ctx.strokeStyle = '#111111';
+    ctx.lineWidth = 3;
+    [-140, -70, 0, 70, 140].forEach(latY => {
+      const wRadius = Math.sqrt(Math.max(0, 230 * 230 - latY * latY));
+      ctx.beginPath();
+      ctx.ellipse(0, latY, wRadius, 32, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+
+    // Meridians
+    for (let m = 0; m < 4; m++) {
+      const a = rot + (m * Math.PI) / 4;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, Math.abs(Math.cos(a)) * 230, 230, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Outer Orbit Data Ring
+    ctx.strokeStyle = '#111111';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(0, 0, 280, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Orbiting Satellite Markers
+    for (let s = 0; s < 8; s++) {
+      const sa = -rot * 1.5 + (s * Math.PI * 2) / 8;
+      const sx = Math.cos(sa) * 280;
+      const sy = Math.sin(sa) * 280;
+      ctx.fillStyle = s % 2 === 0 ? '#111111' : '#F4F1EA';
+      ctx.beginPath();
+      ctx.arc(sx, sy, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#111111';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Outer Typographic Telemetry Arc
+    ctx.save();
+    ctx.rotate(rot * 0.5);
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ['GLOBAL FIBER BACKBONE', 'TRANS-PACIFIC CABLES', 'TRANS-ATLANTIC CABLES', 'TERRESTRIAL BACKHAUL'].forEach((txt, idx) => {
+      ctx.save();
+      ctx.rotate((idx * Math.PI) / 2);
+      ctx.fillText(`// ${txt} //`, 0, -305);
+      ctx.restore();
+    });
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  // ----------------------------------------------------
+  // 5. CLIMAX STATEMENT & CLOSING MOTIF
+  // ----------------------------------------------------
+  if (t > 3.6) {
+    const climProg = Easing.outQuint(remap(t, 3.6, 4.6));
+    ctx.save();
+    ctx.globalAlpha = climProg;
+
+    const bX = 120;
+    const bY = 710;
+    const bW = 768;
+    const bH = 110;
+
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(bX, bY, bW, bH);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 24px "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('FOUR NODES IN 1969.', bX + 28, bY + 44);
+
+    ctx.fillStyle = '#FF2A00';
+    ctx.fillText('ONE PLANETARY NERVOUS SYSTEM TODAY.', bX + 28, bY + 80);
+    ctx.restore();
+  }
+
+  // ----------------------------------------------------
+  // 6. BOTTOM BANNER
+  // ----------------------------------------------------
+  if (t > 4.8) {
+    const footP = Easing.outCubic(remap(t, 4.8, 5.8));
+    ctx.save();
+    ctx.globalAlpha = footP;
+    ctx.fillStyle = '#111111';
+    ctx.fillRect(120, 870, 1680 * footP, 80);
+
+    if (footP > 0.5) {
+      ctx.fillStyle = '#F4F1EA';
+      ctx.font = '900 28px "Helvetica Neue", Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('AN OPEN ARCHITECTURE • CONNECTING ALL HUMAN CONSCIOUSNESS', 160, 910);
+
+      ctx.fillStyle = '#FF2A00';
+      ctx.font = 'bold 22px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText('1969 — FOREVER', 1760, 910);
+    }
+    ctx.restore();
+  }
+};
+
+if (!navigator.webdriver && !window.__OPUSCAR_HEADLESS__) {
+  const defaultDuration = 7.6;
+  const start = performance.now();
+  function loop(now) {
+    const t = ((now - start) / 1000) % defaultDuration;
+    window.renderFrame(t, defaultDuration);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

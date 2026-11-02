@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #1E2923; overflow: hidden; font-family: Georgia, serif; }
+  canvas { display: block; width: 1920px; height: 1080px; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1920" height="1080"></canvas>
+<script>
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+const clamp = (v, min = 0, max = 1) => Math.min(max, Math.max(min, v));
+const remap = (t, t0, t1) => clamp((t - t0) / (t1 - t0), 0, 1);
+
+window.renderFrame = function(t, duration = 6.0) {
+  ctx.fillStyle = '#1E2923';
+  ctx.fillRect(0, 0, 1920, 1080);
+
+  // Chalk Circle Progressive Arc
+  const arcP = remap(t, 0.2, 2.0);
+  ctx.strokeStyle = '#FDE047';
+  ctx.lineWidth = 6;
+  ctx.beginPath();
+  ctx.arc(960, 520, 210, 0, Math.PI * 2 * arcP);
+  ctx.stroke();
+
+  ctx.fillStyle = '#F8FAFC';
+  ctx.textAlign = 'center';
+  ctx.font = 'italic 64px Georgia, serif';
+  ctx.fillText('Shannon Capacity: C = B · log₂(1 + S/N)', 960, 210);
+
+  ctx.font = '36px Georgia, serif';
+  ctx.fillStyle = '#94A3B8';
+  ctx.fillText('Chalkboard Lecture Style — Ideal for Algorithms & Theory', 960, 880);
+};
+
+if (!navigator.webdriver && !window.__OPUSCAR_HEADLESS__) {
+  const start = performance.now();
+  function loop(now) {
+    window.renderFrame(((now - start) / 1000) % 6.0, 6.0);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

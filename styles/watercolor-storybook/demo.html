@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #FBF7EE; overflow: hidden; font-family: Georgia, serif; }
+  canvas { display: block; width: 1920px; height: 1080px; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1920" height="1080"></canvas>
+<script>
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+const clamp = (v, min = 0, max = 1) => Math.min(max, Math.max(min, v));
+const outCubic = (x) => 1 - Math.pow(1 - clamp(x), 3);
+
+function drawWatercolorWash(cx, cy, radius, color, seed, t) {
+  ctx.save();
+  ctx.fillStyle = color;
+  for (let layer = 0; layer < 4; layer++) {
+    ctx.beginPath();
+    const pts = 24;
+    for (let i = 0; i <= pts; i++) {
+      const ang = (i / pts) * Math.PI * 2;
+      const wobble = Math.sin(ang * 4 + seed + layer * 1.7 + t * 0.4) * 18;
+      const r = radius * (0.85 + layer * 0.06) + wobble;
+      const x = cx + Math.cos(ang) * r;
+      const y = cy + Math.sin(ang) * r * 0.72;
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+window.renderFrame = function(t, duration = 6.0) {
+  ctx.fillStyle = '#FBF7EE';
+  ctx.fillRect(0, 0, 1920, 1080);
+
+  const bloom = outCubic(clamp(t / 2.0));
+  drawWatercolorWash(680, 500, 320 * bloom, 'rgba(217, 107, 67, 0.14)', 1.2, t);
+  drawWatercolorWash(1180, 540, 360 * bloom, 'rgba(43, 76, 126, 0.13)', 3.4, t);
+  drawWatercolorWash(940, 620, 290 * bloom, 'rgba(92, 138, 108, 0.15)', 5.1, t);
+
+  ctx.fillStyle = '#3A2E28';
+  ctx.textAlign = 'center';
+  ctx.font = 'italic 74px Georgia, serif';
+  ctx.fillText('Every Story Begins as a Quiet Wash of Color', 960, 490);
+
+  ctx.font = '34px Georgia, serif';
+  ctx.fillStyle = 'rgba(58, 46, 40, 0.75)';
+  ctx.fillText('Painted deterministically in HTML5 Canvas — Frame by Frame', 960, 575);
+};
+
+if (!navigator.webdriver && !window.__OPUSCAR_HEADLESS__) {
+  const start = performance.now();
+  function loop(now) {
+    window.renderFrame(((now - start) / 1000) % 6.0, 6.0);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>

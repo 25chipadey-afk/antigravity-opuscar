@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #F4F1EA; overflow: hidden; font-family: 'Helvetica Neue', Arial, sans-serif; }
+  canvas { display: block; width: 1920px; height: 1080px; }
+</style>
+</head>
+<body>
+<canvas id="stage" width="1920" height="1080"></canvas>
+<script>
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+const clamp = (v, min = 0, max = 1) => Math.min(max, Math.max(min, v));
+const remap = (t, t0, t1) => clamp((t - t0) / (t1 - t0), 0, 1);
+const outQuint = (x) => 1 - Math.pow(1 - clamp(x), 5);
+
+window.renderFrame = function(t, duration = 6.0) {
+  ctx.fillStyle = '#F4F1EA';
+  ctx.fillRect(0, 0, 1920, 1080);
+
+  // Swiss Grid Lines
+  ctx.strokeStyle = 'rgba(17, 17, 17, 0.12)';
+  ctx.lineWidth = 2;
+  [140, 620, 1100, 1780].forEach(x => {
+    ctx.beginPath(); ctx.moveTo(x, 80); ctx.lineTo(x, 1000); ctx.stroke();
+  });
+  [80, 420, 1000].forEach(y => {
+    ctx.beginPath(); ctx.moveTo(140, y); ctx.lineTo(1780, y); ctx.stroke();
+  });
+
+  // Expanding Signal Red Circle
+  const circleP = outQuint(remap(t, 0.1, 1.4));
+  ctx.fillStyle = '#FF2A00';
+  ctx.beginPath();
+  ctx.arc(1440, 540, 260 * circleP, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Rotating Black Bar
+  ctx.save();
+  ctx.translate(1440, 540);
+  ctx.rotate(t * 0.45);
+  ctx.fillStyle = '#111111';
+  ctx.fillRect(-320 * circleP, -18, 640 * circleP, 36);
+  ctx.restore();
+
+  // Headline Typography
+  const textP = outQuint(remap(t, 0.3, 1.2));
+  ctx.fillStyle = '#111111';
+  ctx.font = '900 112px Helvetica, Arial, sans-serif';
+  ctx.fillText('FORM FOLLOWS', 160, 240 + (1 - textP) * 60);
+  ctx.fillStyle = '#FF2A00';
+  ctx.fillText('RHYTHM.', 160, 365 + (1 - textP) * 60);
+
+  ctx.fillStyle = '#111111';
+  ctx.font = 'bold 36px Helvetica, Arial, sans-serif';
+  ctx.fillText('SWISS MOTION GRAPHICS // 24 FPS CODE STUDIO', 160, 520);
+};
+
+if (!navigator.webdriver && !window.__OPUSCAR_HEADLESS__) {
+  const start = performance.now();
+  function loop(now) {
+    window.renderFrame(((now - start) / 1000) % 6.0, 6.0);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
